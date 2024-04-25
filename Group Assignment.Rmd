@@ -1,0 +1,11 @@
+---
+title: "Group Assignment"
+author: "Jinrui Du S3506401, Thi Kim Oanh Nguyen S3451887"
+date: "2024-04-25"
+output: pdf_document
+---
+
+```{r}
+data = read.table("Oscars.txt", header = T, sep = "\t")
+```
+
