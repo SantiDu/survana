@@ -6,6 +6,176 @@ output: pdf_document
 ---
 
 ```{r}
-data = read.table("Oscars.txt", header = T, sep = "\t")
+library(survival)
+library(tidyverse)
 ```
+
+```{r}
+data = read.table("Oscars.txt", header = T, sep = "\t")
+
+# Verify that each row corresponding to a person.
+all(table(data$Identity) == 1)
+
+# Create variable Death from Alive
+data$Death = ifelse(data$Alive == 1, 0, 1)
+
+# Create the time to event
+data$Age = data$Final - data$Birth
+
+#
+data$Oscar_win = ifelse(data$Wins > 0, 1, 0)
+
+#
+data$Oscar_nom = ifelse(data$Noms > 0, 1, 0)
+```
+
+
+# Exercise 1, frequncy tables
+Make a frequency table of the number of deaths, the number of nominations and wins, and of gender, USA-born and number of films.
+
+
+```{r}
+table(data$Death)
+table(data$Noms)
+table(data$Wins)
+table(data$Male)
+table(data$Born_USA)
+table(data$Films)
+```
+
+# Exercise 2
+
+## 2.1 Overall survival
+```{r}
+sf_overall = survfit(Surv(Age, Death) ~ 1, data = data)
+
+plot(sf_overall)
+```
+```{r}
+tail(data[order(data$Age), ])
+
+tab = summary(sf_overall)
+t = tab$time
+t = c(0, t[-length(t)])
+cumsum(tab$surv * (tab$time - t))
+
+mus = numeric(length(sf_overall$time))
+mu = sf_overall$time[1]
+mus[1] = mu
+for(i in 1:(length(sf_overall$time)-1)) {
+  mu <- mu + sf_overall$surv[i] * (sf_overall$time[i+1] - sf_overall$time[i])
+  mus[i + 1] = mu
+}
+summary(sf_overall)$table["rmean"]
+
+print(sf_overall, print.rmean=TRUE, rmean=120)
+```
+
+### Log-rank test
+```{r}
+survdiff(Surv(Age, Death) ~ Male, data = data)
+```
+### Cox proportional hazards model
+```{r}
+coxph(Surv(Age, Death) ~ Male, data = data)
+```
+
+# Exercise 3
+
+## 2.1 Oscar win
+
+### Kaplan-Meier curve
+
+```{r}
+sf_win = survfit(Surv(Age, Death) ~ Oscar_win, data = data)
+
+plot(sf_win)
+```
+
+### Log-rank test
+
+```{r}
+survdiff(Surv(Age, Death) ~ Oscar_win, data = data)
+```
+
+### Cox proportional hazards model
+
+```{r}
+coxph(Surv(Age, Death) ~ Oscar_win, data = data)
+```
+
+
+## 2.2 Oscar nomination
+
+### Kaplan-Meier curve
+
+```{r}
+sf_nom = survfit(Surv(Age, Death) ~ Oscar_nom, data = data)
+
+plot(sf_nom)
+```
+### Log-rank test
+
+```{r}
+survdiff(Surv(Age, Death) ~ Oscar_nom, data = data)
+```
+
+### Cox proportional hazards model
+
+```{r}
+coxph(Surv(Age, Death) ~ Oscar_nom, data = data)
+```
+
+
+# Exercise 4
+
+
+# Exercise 5
+```{r}
+data$FirstWin_Age = data$FirstWin_Year - data$Birth
+data$Time1 = 0
+data$Time2 = data$Age
+
+data_temp = data[!is.na(data$FirstWin_Year), ]
+data_temp$Time2 = data_temp$FirstWin_Age
+data_temp$Oscar_win = 0
+data_temp$Death = 0
+
+data[!is.na(data$FirstWin_Year), "Time1"] = data[!is.na(data$FirstWin_Year), "FirstWin_Age"]
+
+data = rbind(data, data_temp)
+data = data[order(data$Identity, data$Time1), ]
+```
+
+
+```{r}
+data[, c("Identity", "Time1", "Time2", "FirstWin_Age", "Oscar_win", "Death")]
+```
+
+## 5.1 
+### Kaplan-Meier curve
+
+```{r}
+sf_win = survfit(Surv(Age, Death) ~ Oscar_win, data = data)
+
+plot(sf_win)
+```
+
+### Log-rank test
+
+```{r}
+survdiff(Surv(Age, Death) ~ Oscar_win, data = data)
+```
+
+### Cox proportional hazards model
+
+```{r}
+coxph(Surv(Time1, Time2, Death) ~ Oscar_win, data = data)
+```
+
+## 5.2
+```{r}
+coxph(Surv(Time1, Time2, Death) ~ Oscar_win + Born_USA + Male, data = data)
+```
+
 
