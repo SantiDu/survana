@@ -21,6 +21,7 @@ library(survival)
 library(tidyverse)
 library(survminer)
 library(gtsummary)
+library(ggplot2)
 ```
 
 # Data Exploration
@@ -42,7 +43,6 @@ summary((data))
 # Exercise 1, frequncy tables
 Make a frequency table of the number of deaths, the number of nominations and wins, and of gender, USA-born and number of films.
 
-
 ```{r}
 table(data$Death)
 table(data$Noms)
@@ -51,6 +51,103 @@ table(data$Male)
 table(data$Born_USA)
 table(data$Films)
 ```
+
+
+
+
+```{r}
+death_table <- table(data$Death)
+death_df <- as.data.frame(death_table)
+names(death_df) <- c("Death", "Frequency")
+ggplot(death_df, aes(x = Death, y = Frequency, fill = as.factor(Death))) +
+  geom_bar(stat = "identity") +
+    labs(title = "Frequency of Deaths") +
+  geom_text(aes(label = Frequency), vjust = -0.5, color = "red", size = 4) + # Add count values
+  scale_fill_manual(values = c("blue", "grey"), labels = c("Alive", "Dead")) +
+  scale_x_discrete(labels = c("0" = "Alive", "1" = "Dead"))
+```
+```{r}
+nom_table <- table(data$Noms)
+nom_df <- as.data.frame(nom_table)
+names(nom_df) <- c("Nomination", "Frequency")
+ggplot(nom_df, aes(x = Nomination, y = Frequency, fill = as.factor(Nomination))) +
+  geom_bar(stat = "identity") +
+    labs(title = "Frequency of Nomination") +
+  geom_text(aes(label = Frequency), vjust = -0.5, color = "red", size = 4)
+```
+
+```{r}
+
+win_table <- table(data$Wins)
+win_df <- as.data.frame(win_table)
+names(win_df) <- c("Wining_Oscar", "Frequency")
+ggplot(win_df, aes(x = Wining_Oscar, y = Frequency, fill = as.factor(Wining_Oscar))) +
+  geom_bar(stat = "identity") +
+    labs(title = "Frequency of  Wining Oscar") +
+  geom_text(aes(label = Frequency), vjust = -0.5, color = "red", size = 4)
+```
+
+
+```{r}
+gender_table <- table(data$Male)
+gender_df <- as.data.frame(gender_table)
+names(gender_df) <- c("Gender", "Frequency")
+ggplot(gender_df, aes(x = Gender, y = Frequency, fill = as.factor(Gender))) +
+  geom_bar(stat = "identity") +
+    labs(title = "Frequency of Gender") +
+  geom_text(aes(label = Frequency), vjust = -0.5, color = "red", size = 4) + # Add count values
+  scale_fill_manual(values = c("pink","lightblue"), labels = c("Female", "Male")) +
+  scale_x_discrete(labels = c("0" = "Female", "1" = "Male"))
+```
+```{r}
+
+born_table <- table(data$Born_USA)
+born_df <- as.data.frame(born_table)
+names(born_df) <- c("Born_USA", "Frequency")
+ggplot(born_df, aes(x = Born_USA, y = Frequency, fill = as.factor(Born_USA))) +
+  geom_bar(stat = "identity") +
+    labs(title = "Frequency of Born_USA") +
+  geom_text(aes(label = Frequency), vjust = -0.5, color = "red", size = 4) + # Add count values
+  scale_fill_manual(values = c("darkgreen", "orange"), labels = c("No", "Yes")) +
+  scale_x_discrete(labels = c("0" = "No", "1" = "Yes"))
+```
+```{r}
+# Create a histogram
+hist(data$Films,breaks = seq(0, 300, by = 10), main = "Distribution of Film Counts", xlab = "Film Counts", ylab = "Frequency")
+
+```
+
+
+```{r}
+# Assuming 'data$Films' contains the film counts
+# Creating a table of frequencies
+film_table <- table(data$Films)
+
+# Converting the table to a data frame
+film_df <- as.data.frame(film_table)
+names(film_df) <- c("Films", "Frequency")
+
+# Trimming the data to focus on the most common film counts (let's say top 10)
+top_film_counts <- head(sort(film_df$Frequency, decreasing = TRUE), 30)
+film_df <- subset(film_df, Frequency %in% top_film_counts)
+
+# Creating the plot
+ggplot(film_df, aes(x = factor(Films), y = Frequency)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = Frequency), vjust = -0.5, color = "black", size = 3) + # Add count values
+  labs(title = "Frequency of Films", x = "Number of Films", y = "Frequency")
+```
+
+
+```{r}
+
+film_table <- table(data$Films)
+ggplot(nom_df, aes(x = Film, y = Frequency, fill = as.factor(Film))) +
+  geom_line(stat = "identity") +
+    labs(title = "Frequency of Film") +
+  geom_text(aes(label = Frequency), vjust = -0.5, color = "red", size = 4)
+```
+
 
 # Exercise 2
 ## 2.1 Overall survival
