@@ -1,0 +1,172 @@
+---
+title: "Group Assignment 3: Oscar"
+author: 
+- Jinrui Du S3506401
+- Thi Kim Oanh Nguyen S3451887
+output: pdf_document
+df_print: paged
+---
+
+# Introduction
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Import packages 
+```{r, message=FALSE, warning=FALSE}
+library(survival)
+library(tidyverse)
+library(survminer)
+library(gtsummary)
+```
+
+# Data Exploration
+
+In this report, we will utilize data related to the Oscar awards. This dataset pertains to the survival of film actors and actresses within the context of the Oscar awards.
+
+```{r}
+data = read.table("Oscars.txt", header = T, sep = "\t")
+# Verify that each row corresponding to a person.
+all(table(data$Identity) == 1)
+# Create variable Death from Alive
+data$Death = ifelse(data$Alive == 1, 0, 1)
+# Create the time to event
+data$Year = data$Final - data$Birth
+summary((data))
+```
+
+
+# Exercise 1, frequncy tables
+Make a frequency table of the number of deaths, the number of nominations and wins, and of gender, USA-born and number of films.
+
+
+```{r}
+table(data$Death)
+table(data$Noms)
+table(data$Wins)
+table(data$Male)
+table(data$Born_USA)
+table(data$Films)
+```
+
+# Exercise 2
+## 2.1 Overall survival
+```{r, message=FALSE, warning=FALSE}
+sf_overall <- survfit(formula=Surv(Year,Death) ~ 1, data=data)
+ggsurvplot(sf_overall,data=data,
+# from survminer package
+           xlim = c(0,110),
+           pval = FALSE, conf.int = FALSE,
+           surv.median.line = "hv", # Specify median survival
+           ggtheme = theme_bw(), 
+           palette =c("#E7B800", "#2E9FDF") ,xlab="Years") + labs(color = "Groups")
+
+```
+
+```{r}
+# Calculate the mean survival time
+print(sf_overall, print.rmean=TRUE, rmean=120)
+```
+
+```{r}
+summary(sf_overall)$table[5:6]
+```
+
+
+
+## 2.2 Survival - males and females
+### Kaplan-Meier curve
+```{r}
+
+sf_gender <- survfit(formula=Surv(Year,Death) ~ Male, data=data)
+ggsurvplot(sf_gender,data=data,
+           xlim = c(0,110),
+           pval = FALSE, conf.int = FALSE,
+           surv.median.line = "hv", # Specify median survival
+           ggtheme = theme_bw(), 
+           palette =c("#E7B800", "#2E9FDF"),,xlab="Years") + labs(color = "Groups")
+
+```
+
+
+
+
+
+### Log-rank test
+```{r}
+survdiff(Surv(Year, Death) ~ Male, data = data)
+```
+The log-rank test result indicates a significant difference in survival rates between males and females. The p-value of the test is very small (5e-04), indicating sufficient evidence to reject the null hypothesis of no difference between the two groups.
+
+In this case, the chi-square value (chisq) is 12.2 with 1 degree of freedom. This suggests that the difference between the groups is statistically significant.
+
+### Cox proportional hazards model
+### Hazard ratio 
+
+```{r ,message=FALSE, warning=FALSE}
+model <- coxph(Surv(Year, Death) ~ Male, data = data)
+tbl_regression(model,exp = TRUE)  # from gtsummary package
+```
+
+# Exercise 3
+
+```{r, message=FALSE, warning=FALSE}
+#  Oscar win
+data$Oscar_win = ifelse(data$Wins > 0, 1, 0)
+sf_gender <- survfit(formula=Surv(Year,Death) ~ Male, data=data)
+ggsurvplot(sf_win,data=data,
+           xlim = c(0,110),
+           pval = FALSE, conf.int = FALSE,
+           surv.median.line = "hv", # Specify median survival
+           ggtheme = theme_bw(), 
+           palette =c("#00008B",'#FF0000'),xlab="Years") + labs(color = "Groups")
+```
+
+### Log-rank test
+### Cox proportional hazards model
+```{r}
+survdiff(Surv(Year, Death) ~ Oscar_win, data = data)
+model2 = coxph(Surv(Year, Death) ~ Oscar_win, data = data)
+tbl_regression(model2, exp = TRUE) 
+# exp = TRUE , create a regression table summarizing the Cox regression model
+```
+
+At any given time points the actor/ actress with Oscar awards is 0.75 time as likely to die as without Oscar awards
+```{r, warning=FALSE, message=FALSE}
+## Oscar nomination
+data$Oscar_nom = ifelse(data$Noms > 0, 1, 0)
+sf_nom = survfit(Surv(Year, Death) ~ Oscar_nom, data = data)
+ggsurvplot(sf_nom,data=data,
+           xlim = c(0,110),
+           pval = FALSE, conf.int = FALSE,
+           surv.median.line = "hv", # Specify median survival
+           ggtheme = theme_bw(), 
+           palette =c( "#2E9FDF", "#E7B800"),xlab="Years") + labs(color = "Groups")
+```
+### Log-rank test
+### Cox proportional hazards model
+
+```{r}
+survdiff(Surv(Year, Death) ~ Oscar_nom, data = data)
+model3 = coxph(Surv(Year, Death) ~ Oscar_nom, data = data)
+tbl_regression(model3, exp = TRUE) 
+```
+At any given time points the actor/ actress with nomination is 0.87 time as likely to die as without nomination 
+
+
+Question 4: 
+What is your conclusion? Do a similar analysis
+comparing Oscar nominees with actors/actresses without Oscar nomination.
+
+
+
+
+
+
+
+
+
+
