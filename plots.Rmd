@@ -79,7 +79,7 @@ ggplot(nom_df, aes(x = Nomination, y = Frequency, fill = as.factor(Nomination)))
   theme(legend.position = "none")
 ```
 
-The frequency deceases as the number of nomination increases. Most (902) actors haven't been nominated. 583 actors have one nomination. Four actors have eleven, and another four actors have twelve nominations.
+The frequency deceases as the number of nomination increases. Most (902) actors haven't been nominated. 496 actors have one nomination. Two actors have eleven, and another two actors have twelve nominations.
 
 ## Frequency table of the number of wins
 
@@ -93,7 +93,7 @@ ggplot(win_df, aes(x = Wining_Oscar, y = Frequency, fill = as.factor(Wining_Osca
   geom_text(aes(label = Frequency), vjust = -0.5, color = "red", size = 4) +
   theme(legend.position = "none")
 ```
-There are 1670 observations but 1431 of them have zero Oscar win. We have huge imbalance in the data set. It is worth noting that there are two four-time Oscar winners.
+There are 1670 observations but 1431 of them have zero Oscar win. We have huge imbalance in the data set. It is worth noting that there is one four-time Oscar winners.
 
 ## Frequency table of gender
 
