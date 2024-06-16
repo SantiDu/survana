@@ -48,7 +48,6 @@ summary(data)
 
 The data has information of 1670 actors spanned across 11 variables. It contains their year of birth, year of death or last known to be alive (i.e. 2001), from the two we get their age. We also get an indicator variable showing if the death was censored. The year of first Oscar win is also in the data set. Other variables are the number of films, born in USA, gender, number of Oscar nomination, number of Oscar wins, and the year of first Oscar nomination.
 
-
 ## Frequency table of the number of deaths
 
 ```{r}
@@ -63,8 +62,8 @@ ggplot(death_df, aes(x = Death, y = Frequency, fill = as.factor(Death))) +
   scale_x_discrete(labels = c("0" = "Alive", "1" = "Dead")) +
   theme(legend.position = "none")
 ```
-The numbers of dead and alive actors up to 2001 are close. 
 
+The numbers of dead and alive actors up to 2001 are close.
 
 ## Frequency table of the number of nominations
 
@@ -93,6 +92,7 @@ ggplot(win_df, aes(x = Wining_Oscar, y = Frequency, fill = as.factor(Wining_Osca
   geom_text(aes(label = Frequency), vjust = -0.5, color = "red", size = 4) +
   theme(legend.position = "none")
 ```
+
 There are 1670 observations but 1431 of them have zero Oscar win. We have huge imbalance in the data set. It is worth noting that there is one four-time Oscar winners.
 
 ## Frequency table of gender
@@ -109,6 +109,7 @@ ggplot(gender_df, aes(x = Gender, y = Frequency, fill = as.factor(Gender))) +
   scale_x_discrete(labels = c("0" = "Female", "1" = "Male")) +
   theme(legend.position = "none")
 ```
+
 The difference in the numbers of male and female actors are not big. There are more actors than actresses.
 
 ## Frequency table of USA born
@@ -125,10 +126,11 @@ ggplot(born_df, aes(x = Born_USA, y = Frequency, fill = as.factor(Born_USA))) +
   scale_x_discrete(labels = c("0" = "No", "1" = "Yes")) + 
   theme(legend.position = "none")
 ```
+
 The number of US-born actors is 2.5 times the non-US-born actors in the data set.
 
-
 ## Frequency table of number of films
+
 ```{r}
 hist(data$Films,
      breaks = seq(0, 300, by = 10), 
@@ -138,8 +140,6 @@ hist(data$Films,
 ```
 
 It is surprising to see that there are actors can have more than 250 films in his/her lifetime.
-
-
 
 # 2. Kaplan-Meier curve for overall survival, mean survival time, and comparing survival of actors and actresses.
 
@@ -161,8 +161,8 @@ ggsurvplot(sf_overall,
            xlab="Age in years") + 
   labs(color = "Groups")
 ```
-The survival curve looks stable during the first 30 to 50 years, and start to drop after that. The median survival age is 79.
 
+The survival curve looks stable during the first 30 to 50 years, and start to drop after that. The median survival age is 79.
 
 ### Calculate mean survival time
 
@@ -190,6 +190,7 @@ print(sf_overall, print.rmean=TRUE, rmean=120)
 ```
 
 ## 2.2 Survival - males and females
+
 Now we stratify the data set by gender, and plot the Kaplan-Meier curve.
 
 ### Kaplan-Meier curve
@@ -207,6 +208,7 @@ ggsurvplot(sf_gender,
            xlab="Age in years") + 
   labs(color = "Groups")
 ```
+
 The female survival curve, which is the yellow one, runs above the male curve, starting from age 67 or so.
 
 ### Log-rank test
@@ -223,14 +225,15 @@ The log-rank test result indicates a significant difference in survival rates be
 model = coxph(Surv(Age, Death) ~ Male, data = data)
 tbl_regression(model, exp = TRUE)
 ```
-The p-value of the hazard ratio is less than 0.001. Male actors are $exp(0.25) = 1.29$ times likely to die than the female actors at any given age provided that they have survived to that age. 
 
+The p-value of the hazard ratio is less than 0.001. The 95\% confidence interval is (1.12, 1.48), does not containing 1. Male actors are $exp(0.25) = 1.29$ times likely to die than the female actors at any given age provided that they have survived to that age.
 
 # 3. Oscar win and nomination as time-fixed variables
 
 We now compare the actors with at least one Oscar win and the group with no wins, using Oscar win as a time-fixed variable.
 
 ## 3.1 Oscar win
+
 ```{r, message=FALSE, warning=FALSE}
 sf_win <- survfit(formula=Surv(Age, Death) ~ Oscar_win, data=data)
 ggsurvplot(sf_win, 
@@ -244,12 +247,15 @@ ggsurvplot(sf_win,
            xlab="Age in years") + 
   labs(color = "Groups")
 ```
+
 The red survival curve is Oscar win group, which is above the blue non-win group. Looks like actors with Oscar win lives longer than those without Oscar win.
 
 ### Log-rank test
+
 ```{r}
 survdiff(Surv(Age, Death) ~ Oscar_win, data = data)
 ```
+
 The p-value of the log-rank test is 0.005. We reject the null hypothesis that the survival of the two groups are the same.
 
 ### Cox proportional hazards model and hazard ratio
@@ -259,8 +265,7 @@ model2 = coxph(Surv(Age, Death) ~ Oscar_win, data = data)
 tbl_regression(model2, exp = TRUE) 
 ```
 
-
-The p-value of the hazard ratio is 0.006. At any age the actor/ actress with Oscar awards is as 0.75 times likely to die as those without Oscar awards, provided that they survived to that age.
+The p-value of the hazard ratio is 0.006. The 95\% confidence interval is (0.61, 0.92), does not containing 1. At any age the actor/ actress with Oscar awards is as 0.75 times likely to die as those without Oscar awards, provided that they survived to that age.
 
 ## 3.2 Oscar nomination
 
@@ -278,9 +283,11 @@ ggsurvplot(sf_nom,
            xlab="Age in Years") + 
   labs(color = "Groups")
 ```
-It looks like the survival curve of Oscar nomination group is above the non-nomination group from around age 55 to 80, but is the difference significant? We test it with the log-rank test. 
+
+It looks like the survival curve of Oscar nomination group is above the non-nomination group from around age 55 to 80, but is the difference significant? We test it with the log-rank test.
 
 ### Log-rank test
+
 ```{r}
 survdiff(Surv(Age, Death) ~ Oscar_nom, data = data)
 ```
@@ -294,18 +301,18 @@ model3 = coxph(Surv(Age, Death) ~ Oscar_nom, data = data)
 tbl_regression(model3, exp = TRUE) 
 ```
 
-At any given age, the actor/ actress with nomination is as 0.87 time likely to die as without nomination, provided that they survived to that age. However, the p-value is larger than 0.05. So the ratio is not statistically significant.
+At any given age, the actor/ actress with nomination is as 0.87 time likely to die as without nomination, provided that they survived to that age. However, the p-value is larger than 0.05, and the 95\% confidence interval is (0.76, 1.01), containing 1. So the ratio is not statistically significant.
 
 # 4. The reason that above analysis is wrong.
 
-By using Oscar win as a time-fixed variable, we treat the actors with Oscar win as if they were born with an Oscar, but they are not. They have to live long enough to get an Oscar. Therefore, analyzing the data this way, we will over-estimate the survival of the actors who won the award. This is known as "immortal time bias". This bias will increase the difference of survival between the two groups. We also did not adjust for the covariates, such as born in US, or gender. 
+By using Oscar win as a time-fixed variable, we treat the actors with Oscar win as if they were born with an Oscar, but they are not. They have to live long enough to get an Oscar. Therefore, analyzing the data this way, we will over-estimate the survival of the actors who won the award. This is known as "immortal time bias". This bias will increase the difference of survival between the two groups. We also did not adjust for the covariates, such as born in US, or gender.
 
 To conduct the correct analysis, we should use Oscar win as time-dependent variable, and also try to adjust for possible confounders.
-
 
 # 5. Oscar win as time-dependent variable
 
 To use it as a time-dependent variable, we first transform our data from wide format to long format:
+
 ```{r}
 data$FirstWin_Age = data$FirstWin_Year - data$Birth
 data$Time1 = 0
@@ -323,6 +330,7 @@ data = data[order(data$Identity, data$Time1), ]
 ```
 
 We take a look at a few entries of the transformed data:
+
 ```{r}
 data[11:15, c("Identity", "Time1", "Time2", "FirstWin_Age", "Oscar_win", "Death")]
 ```
@@ -346,6 +354,7 @@ ggsurvplot(sf_win,
            xlab="Age in years") + 
   labs(color = "Groups")
 ```
+
 It looks like survival curve of the Oscar win group is above the curve of the non-win group in some time intervals, but overall, the difference is not big. We use the log-rank test, and Cox proportional hazard model to confirm this.
 
 ### Log-rank test
@@ -353,7 +362,8 @@ It looks like survival curve of the Oscar win group is above the curve of the no
 ```{r}
 survdiff(Surv(Age, Death) ~ Oscar_win, data = data)
 ```
-The p-value of the log-rank test is way above 0.05. We can not reject the null hypothesis that the survival of actors with Oscar award.
+
+The p-value of the log-rank test is way above 0.05. We can not reject the null hypothesis that the survival of actors with at least one Oscar award and without award are the same.
 
 ### Cox proportional hazards model
 
@@ -362,10 +372,13 @@ model4 = coxph(Surv(Time1, Time2, Death) ~ Oscar_win, data = data)
 tbl_regression(model4, exp = TRUE) 
 ```
 
+Again, the hazard ratio is 0.84, but the p-value is 0.11, way above 0.05. The 95% confidence interval is (0.69, 1.04), containing 1. So, we can not reject the null hypothesis that the hazard of two groups are the same.
+
 ## 5.2 Multivariate Cox regression
 
 ```{r}
 model5 = coxph(Surv(Time1, Time2, Death) ~ Oscar_win + Born_USA + Male, data = data)
 tbl_regression(model5, exp = TRUE) 
 ```
+
 
