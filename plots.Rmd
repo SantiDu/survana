@@ -161,7 +161,7 @@ ggsurvplot(sf_overall,
            xlab="Age in years") + 
   labs(color = "Groups")
 ```
-The survival curve looks stable during the first 30 to 50 years, and start to drop after that. The median survival age is about 76.
+The survival curve looks stable during the first 30 to 50 years, and start to drop after that. The median survival age is 79.
 
 
 ### Calculate mean survival time
@@ -194,7 +194,7 @@ Now we stratify the data set by gender, and plot the Kaplan-Meier curve.
 
 ### Kaplan-Meier curve
 
-```{r}
+```{r, message=F, warning=F}
 sf_gender = survfit(formula = Surv(Age, Death) ~ Male, data = data)
 ggsurvplot(sf_gender,
            data = data,
@@ -223,13 +223,14 @@ The log-rank test result indicates a significant difference in survival rates be
 model = coxph(Surv(Age, Death) ~ Male, data = data)
 tbl_regression(model, exp = TRUE)
 ```
-The p-value of the hazard ratio is less than 0.001. Male actors are 1.29 times more likely to die at a given age provided that they have survived to that age. 
+The p-value of the hazard ratio is less than 0.001. Male actors are $exp(0.25) = 1.29$ times likely to die than the female actors at any given age provided that they have survived to that age. 
 
 
 # 3. Oscar win and nomination as time-fixed variables
 
-## 3.1 Oscar win
+We now compare the actors with at least one Oscar win and the group with no wins, using Oscar win as a time-fixed variable.
 
+## 3.1 Oscar win
 ```{r, message=FALSE, warning=FALSE}
 sf_win <- survfit(formula=Surv(Age, Death) ~ Oscar_win, data=data)
 ggsurvplot(sf_win, 
@@ -243,23 +244,27 @@ ggsurvplot(sf_win,
            xlab="Age in years") + 
   labs(color = "Groups")
 ```
+The red survival curve is Oscar win group, which is above the blue non-win group. Looks like actors with Oscar win lives longer than those without Oscar win.
 
 ### Log-rank test
-
 ```{r}
 survdiff(Surv(Age, Death) ~ Oscar_win, data = data)
 ```
+The p-value of the log-rank test is 0.005. We reject the null hypothesis that the survival of the two groups are the same.
 
 ### Cox proportional hazards model and hazard ratio
 
 ```{r}
 model2 = coxph(Surv(Age, Death) ~ Oscar_win, data = data)
-tbl_regression(model2, exp = TRUE) # exp = TRUE, create a regression table summarizing the Cox regression model
+tbl_regression(model2, exp = TRUE) 
 ```
 
-At any given time points the actor/ actress with Oscar awards is 0.75 time as likely to die as without Oscar awards
+
+The p-value of the hazard ratio is 0.006. At any age the actor/ actress with Oscar awards is as 0.75 times likely to die as those without Oscar awards, provided that they survived to that age.
 
 ## 3.2 Oscar nomination
+
+We now compare the actors with at least one Oscar nomination and the group with no nominations, using Oscar nomination as a time-fixed variable.
 
 ```{r, warning=FALSE, message=FALSE}
 sf_nom = survfit(Surv(Age, Death) ~ Oscar_nom, data = data)
@@ -273,12 +278,14 @@ ggsurvplot(sf_nom,
            xlab="Age in Years") + 
   labs(color = "Groups")
 ```
+It looks like the survival curve of Oscar nomination group is above the non-nomination group from around age 55 to 80, but is the difference significant? We test it with the log-rank test. 
 
 ### Log-rank test
-
 ```{r}
 survdiff(Surv(Age, Death) ~ Oscar_nom, data = data)
 ```
+
+The p-value of the log-rank test is 0.053. We can not reject the null hypothesis that the survival of the two groups are the same.
 
 ### Cox proportional hazards model
 
@@ -287,13 +294,18 @@ model3 = coxph(Surv(Age, Death) ~ Oscar_nom, data = data)
 tbl_regression(model3, exp = TRUE) 
 ```
 
-At any given time points the actor/ actress with nomination is 0.87 time as likely to die as without nomination
+At any given age, the actor/ actress with nomination is as 0.87 time likely to die as without nomination, provided that they survived to that age. However, the p-value is larger than 0.05. So the ratio is not statistically significant.
 
 # 4. The reason that above analysis is wrong.
 
-# 5. Oscar win and nomination as time-dependent variables
+By using Oscar win as a time-fixed variable, we treat the actors with Oscar win as if they were born with an Oscar, but they are not. They have to live long enough to get an Oscar. Therefore, analyzing the data this way, we will over-estimate the survival of the actors who won the award. This is known as "immortal time bias". This bias will increase the difference of survival between the two groups. We also did not adjust for the covariates, such as born in US, or gender. 
+
+To conduct the correct analysis, we should use Oscar win as time-dependent variable, and also try to adjust for possible confounders.
 
 
+# 5. Oscar win as time-dependent variable
+
+To use it as a time-dependent variable, we first transform our data from wide format to long format:
 ```{r}
 data$FirstWin_Age = data$FirstWin_Year - data$Birth
 data$Time1 = 0
@@ -310,11 +322,14 @@ data = rbind(data, data_temp)
 data = data[order(data$Identity, data$Time1), ]
 ```
 
+We take a look at a few entries of the transformed data:
 ```{r}
 data[11:15, c("Identity", "Time1", "Time2", "FirstWin_Age", "Oscar_win", "Death")]
 ```
 
 ## 5.1 Single variate Cox regression
+
+Now that the data is long format, meaning that we treat Oscar win as a time dependent variable, we can conduct our analysis as before.
 
 ### Kaplan-Meier curve
 
@@ -331,12 +346,14 @@ ggsurvplot(sf_win,
            xlab="Age in years") + 
   labs(color = "Groups")
 ```
+It looks like survival curve of the Oscar win group is above the curve of the non-win group in some time intervals, but overall, the difference is not big. We use the log-rank test, and Cox proportional hazard model to confirm this.
 
 ### Log-rank test
 
 ```{r}
 survdiff(Surv(Age, Death) ~ Oscar_win, data = data)
 ```
+The p-value of the log-rank test is way above 0.05. We can not reject the null hypothesis that the survival of actors with Oscar award.
 
 ### Cox proportional hazards model
 
