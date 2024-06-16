@@ -1,29 +1,28 @@
 ---
-title: "Group Assignment 6: Oscar"
+title: "Assignment 6: Oscar data"
 author: 
-- Jinrui Du S3506401
-- Thi Kim Oanh Nguyen S3451887
+- Jinrui Du S3506401, Thi Kim Oanh Nguyen S3451887
 output: pdf_document
 df_print: paged
 ---
 
 # Introduction
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
-# Import packages 
+In this report, we aim to investigate the effect of Oscar win on the survival of actors and actresses. In an earlier analysis, Redelmeier and Singh (2001) concluded that Oscar win prolonged the survival. Unfortunately, they did not incorporate the winning of an Oscar as a time-dependent variable. We will first explore the data set, then apply data stratification, Kaplan-Meier estimation, log-rank test, and Cox proportional hazards model to analyze the survival of actors.
+
+# Import packages
+
 ```{r, message=FALSE, warning=FALSE}
+rm(list = ls())
 library(survival)
 library(tidyverse)
 library(survminer)
 library(gtsummary)
 ```
 
-# Data Exploration
+# 1. Data exploration
 
-In this report, we will utilize data related to the Oscar awards. This dataset pertains to the survival of film actors and actresses within the context of the Oscar awards.
-
+The Oscar data originated from the aforementioned analysis.
 
 ```{r}
 data = read.table("Oscars.txt", header = T, sep = "\t")
@@ -47,122 +46,107 @@ data$Oscar_nom = ifelse(data$Noms > 0, 1, 0)
 summary(data)
 ```
 
-
-# Exercise 1, frequncy tables
-Make a frequency table of the number of deaths, the number of nominations and wins, and of gender, USA-born and number of films.
+The data has information of 1670 actors spanned across 11 variables. It contains their year of birth, year of death or last known to be alive (i.e. 2001), from the two we get their age. We also get an indicator variable showing if the death was censored. The year of first Oscar win is also in the data set. Other variables are the number of films, born in USA, gender, number of Oscar nomination, number of Oscar wins, and the year of first Oscar nomination.
 
 
-```{r}
-table(data$Death)
-table(data$Noms)
-table(data$Wins)
-table(data$Male)
-table(data$Born_USA)
-table(data$Films)
-```
-
+## Frequency table of the number of deaths
 
 ```{r}
-death_table <- table(data$Death)
-death_df <- as.data.frame(death_table)
-names(death_df) <- c("Death", "Frequency")
+death_table = table(data$Death)
+death_df = as.data.frame(death_table)
+names(death_df) = c("Death", "Frequency")
 ggplot(death_df, aes(x = Death, y = Frequency, fill = as.factor(Death))) +
   geom_bar(stat = "identity") +
     labs(title = "Frequency of Deaths") +
   geom_text(aes(label = Frequency), vjust = -0.5, color = "red", size = 4) + # Add count values
   scale_fill_manual(values = c("blue", "grey"), labels = c("Alive", "Dead")) +
-  scale_x_discrete(labels = c("0" = "Alive", "1" = "Dead"))
+  scale_x_discrete(labels = c("0" = "Alive", "1" = "Dead")) +
+  theme(legend.position = "none")
 ```
+The numbers of dead and alive actors up to 2001 are close. 
 
+
+## Frequency table of the number of nominations
 
 ```{r}
-nom_table <- table(data$Noms)
-nom_df <- as.data.frame(nom_table)
-names(nom_df) <- c("Nomination", "Frequency")
+nom_table = table(data$Noms)
+nom_df = as.data.frame(nom_table)
+names(nom_df) = c("Nomination", "Frequency")
 ggplot(nom_df, aes(x = Nomination, y = Frequency, fill = as.factor(Nomination))) +
   geom_bar(stat = "identity") +
-    labs(title = "Frequency of Nomination") +
-  geom_text(aes(label = Frequency), vjust = -0.5, color = "red", size = 4)
+    labs(title = "Frequency of Nomination", x = "Number of Nominations") +
+  geom_text(aes(label = Frequency), vjust = -0.5, color = "red", size = 4) +
+  theme(legend.position = "none")
 ```
 
-```{r}
+The frequency deceases as the number of nomination increases. Most (902) actors haven't been nominated. 583 actors have one nomination. Four actors have eleven, and another four actors have twelve nominations.
 
-win_table <- table(data$Wins)
-win_df <- as.data.frame(win_table)
-names(win_df) <- c("Wining_Oscar", "Frequency")
+## Frequency table of the number of wins
+
+```{r}
+win_table = table(data$Wins)
+win_df = as.data.frame(win_table)
+names(win_df) = c("Wining_Oscar", "Frequency")
 ggplot(win_df, aes(x = Wining_Oscar, y = Frequency, fill = as.factor(Wining_Oscar))) +
   geom_bar(stat = "identity") +
-    labs(title = "Frequency of  Wining Oscar") +
-  geom_text(aes(label = Frequency), vjust = -0.5, color = "red", size = 4)
+    labs(title = "Frequency of  Wining Oscar", x = "Number of Wins") +
+  geom_text(aes(label = Frequency), vjust = -0.5, color = "red", size = 4) +
+  theme(legend.position = "none")
 ```
+There are 1670 observations but 1431 of them have zero Oscar win. We have huge imbalance in the data set. It is worth noting that there are two four-time Oscar winners.
 
+## Frequency table of gender
 
 ```{r}
-gender_table <- table(data$Male)
-gender_df <- as.data.frame(gender_table)
-names(gender_df) <- c("Gender", "Frequency")
+gender_table = table(data$Male)
+gender_df = as.data.frame(gender_table)
+names(gender_df) = c("Gender", "Frequency")
 ggplot(gender_df, aes(x = Gender, y = Frequency, fill = as.factor(Gender))) +
   geom_bar(stat = "identity") +
     labs(title = "Frequency of Gender") +
   geom_text(aes(label = Frequency), vjust = -0.5, color = "red", size = 4) + # Add count values
   scale_fill_manual(values = c("pink","lightblue"), labels = c("Female", "Male")) +
-  scale_x_discrete(labels = c("0" = "Female", "1" = "Male"))
+  scale_x_discrete(labels = c("0" = "Female", "1" = "Male")) +
+  theme(legend.position = "none")
 ```
+The difference in the numbers of male and female actors are not big. There are more actors than actresses.
 
+## Frequency table of USA born
 
 ```{r}
-
-born_table <- table(data$Born_USA)
-born_df <- as.data.frame(born_table)
-names(born_df) <- c("Born_USA", "Frequency")
+born_table = table(data$Born_USA)
+born_df = as.data.frame(born_table)
+names(born_df) = c("Born_USA", "Frequency")
 ggplot(born_df, aes(x = Born_USA, y = Frequency, fill = as.factor(Born_USA))) +
   geom_bar(stat = "identity") +
-    labs(title = "Frequency of Born_USA") +
+    labs(title = "Frequency of Born in USA", x = "Born in USA") +
   geom_text(aes(label = Frequency), vjust = -0.5, color = "red", size = 4) + # Add count values
   scale_fill_manual(values = c("darkgreen", "orange"), labels = c("No", "Yes")) +
-  scale_x_discrete(labels = c("0" = "No", "1" = "Yes"))
+  scale_x_discrete(labels = c("0" = "No", "1" = "Yes")) + 
+  theme(legend.position = "none")
 ```
+The number of US-born actors is 2.5 times the non-US-born actors in the data set.
 
+
+## Frequency table of number of films
 ```{r}
-# Create a histogram
-hist(data$Films,breaks = seq(0, 300, by = 10), main = "Distribution of Film Counts", xlab = "Film Counts", ylab = "Frequency")
-
+hist(data$Films,
+     breaks = seq(0, 300, by = 10), 
+     main = "Distribution of Film Counts", 
+     xlab = "Film Counts", 
+     ylab = "Frequency")
 ```
 
-
-```{r}
-# Assuming 'data$Films' contains the film counts
-# Creating a table of frequencies
-film_table <- table(data$Films)
-
-# Converting the table to a data frame
-film_df <- as.data.frame(film_table)
-names(film_df) <- c("Films", "Frequency")
-
-# Trimming the data to focus on the most common film counts (let's say top 10)
-top_film_counts <- head(sort(film_df$Frequency, decreasing = TRUE), 30)
-film_df <- subset(film_df, Frequency %in% top_film_counts)
-
-# Creating the plot
-ggplot(film_df, aes(x = factor(Films), y = Frequency)) +
-  geom_bar(stat = "identity") +
-  geom_text(aes(label = Frequency), vjust = -0.5, color = "black", size = 3) + # Add count values
-  labs(title = "Frequency of Films", x = "Number of Films", y = "Frequency")
-```
+It is surprising to see that there are actors can have more than 250 films in his/her lifetime.
 
 
-```{r}
 
-film_table <- table(data$Films)
-ggplot(film_table, aes(x = Films, y = Frequency, fill = as.factor(Films))) +
-  geom_line(stat = "identity") +
-    labs(title = "Frequency of Film") +
-  geom_text(aes(label = Frequency), vjust = -0.5, color = "red", size = 4)
-```
+# 2. Kaplan-Meier curve for overall survival, mean survival time, and comparing survival of actors and actresses.
 
-
-# Exercise 2
 ## 2.1 Overall survival
+
+We plot the Kaplan-Meier curve for all the actors in the data set.
+
 ```{r, message=FALSE, warning=FALSE}
 sf_overall = survfit(formula = Surv(Age, Death) ~ 1, data = data)
 
@@ -177,12 +161,18 @@ ggsurvplot(sf_overall,
            xlab="Age in years") + 
   labs(color = "Groups")
 ```
+The survival curve looks stable during the first 30 to 50 years, and start to drop after that. The median survival age is about 76.
+
 
 ### Calculate mean survival time
+
+To calculate the mean survival time, we first see if the last entry in the data set is censored.
+
 ```{r}
 tail(data[order(data$Age), ])
 ```
-The last record in the data set is censored. Therefore, to calculate the mean survival time, we need to choose an upper limit. If we choose the upper limit to be the maximum age, i.e. 104, in the data set, then the mean survival time is $\int_0^{104} \hat S(t) dt = 76.6$. 
+
+The last record in the data set is censored. Therefore, to calculate the mean survival time, we need to choose an upper limit. If we choose the upper limit to be the maximum age, i.e. 104, in the data set, then the mean survival time is $\int_0^{104} \hat S(t) dt = 76.6$.
 
 ```{r}
 mu = sf_overall$time[1]
@@ -193,16 +183,17 @@ for(i in 1:(length(sf_overall$time)-1)) {
 summary(sf_overall)$table["rmean"]
 ```
 
-If we choose the upper limit to be the largest possible age a person can survive, i.e. 120, then the mean survival time is $\int_0^{120} \hat S(t) dt = 76.8$. 
+If we choose the upper limit to be the largest possible age a person can survive, i.e. 120, then the mean survival time is $\int_0^{120} \hat S(t) dt = 76.8$.
 
 ```{r}
 print(sf_overall, print.rmean=TRUE, rmean=120)
 ```
 
-
-
 ## 2.2 Survival - males and females
+Now we stratify the data set by gender, and plot the Kaplan-Meier curve.
+
 ### Kaplan-Meier curve
+
 ```{r}
 sf_gender = survfit(formula = Surv(Age, Death) ~ Male, data = data)
 ggsurvplot(sf_gender,
@@ -216,26 +207,29 @@ ggsurvplot(sf_gender,
            xlab="Age in years") + 
   labs(color = "Groups")
 ```
-
+The female survival curve, which is the yellow one, runs above the male curve, starting from age 67 or so.
 
 ### Log-rank test
+
 ```{r}
 survdiff(Surv(Age, Death) ~ Male, data = data)
 ```
+
 The log-rank test result indicates a significant difference in survival rates between males and females. The p-value of the test is very small (5e-04), indicating sufficient evidence to reject the null hypothesis of no difference between the two groups.
 
-In this case, the chi-square value (chisq) is 12.2 with 1 degree of freedom. This suggests that the difference between the groups is statistically significant.
-
-### Cox proportional hazards model and hazard ratio 
+### Cox proportional hazards model and hazard ratio
 
 ```{r ,message=FALSE, warning=FALSE}
 model = coxph(Surv(Age, Death) ~ Male, data = data)
-tbl_regression(model, exp = TRUE)  # from gtsummary package
+tbl_regression(model, exp = TRUE)
 ```
+The p-value of the hazard ratio is less than 0.001. Male actors are 1.29 times more likely to die at a given age provided that they have survived to that age. 
 
-# Exercise 3
+
+# 3. Oscar win and nomination as time-fixed variables
 
 ## 3.1 Oscar win
+
 ```{r, message=FALSE, warning=FALSE}
 sf_win <- survfit(formula=Surv(Age, Death) ~ Oscar_win, data=data)
 ggsurvplot(sf_win, 
@@ -251,11 +245,13 @@ ggsurvplot(sf_win,
 ```
 
 ### Log-rank test
+
 ```{r}
 survdiff(Surv(Age, Death) ~ Oscar_win, data = data)
 ```
 
 ### Cox proportional hazards model and hazard ratio
+
 ```{r}
 model2 = coxph(Surv(Age, Death) ~ Oscar_win, data = data)
 tbl_regression(model2, exp = TRUE) # exp = TRUE, create a regression table summarizing the Cox regression model
@@ -264,6 +260,7 @@ tbl_regression(model2, exp = TRUE) # exp = TRUE, create a regression table summa
 At any given time points the actor/ actress with Oscar awards is 0.75 time as likely to die as without Oscar awards
 
 ## 3.2 Oscar nomination
+
 ```{r, warning=FALSE, message=FALSE}
 sf_nom = survfit(Surv(Age, Death) ~ Oscar_nom, data = data)
 ggsurvplot(sf_nom,
@@ -276,24 +273,27 @@ ggsurvplot(sf_nom,
            xlab="Age in Years") + 
   labs(color = "Groups")
 ```
+
 ### Log-rank test
+
 ```{r}
 survdiff(Surv(Age, Death) ~ Oscar_nom, data = data)
 ```
 
 ### Cox proportional hazards model
+
 ```{r}
 model3 = coxph(Surv(Age, Death) ~ Oscar_nom, data = data)
 tbl_regression(model3, exp = TRUE) 
 ```
-At any given time points the actor/ actress with nomination is 0.87 time as likely to die as without nomination 
+
+At any given time points the actor/ actress with nomination is 0.87 time as likely to die as without nomination
+
+# 4. The reason that above analysis is wrong.
+
+# 5. Oscar win and nomination as time-dependent variables
 
 
-# Exercise 4: 
-What is your conclusion? Do a similar analysis
-comparing Oscar nominees with actors/actresses without Oscar nomination.
-
-# Exercise 5
 ```{r}
 data$FirstWin_Age = data$FirstWin_Year - data$Birth
 data$Time1 = 0
@@ -310,36 +310,45 @@ data = rbind(data, data_temp)
 data = data[order(data$Identity, data$Time1), ]
 ```
 
-
 ```{r}
-data[, c("Identity", "Time1", "Time2", "FirstWin_Age", "Oscar_win", "Death")]
+data[11:15, c("Identity", "Time1", "Time2", "FirstWin_Age", "Oscar_win", "Death")]
 ```
 
-## 5.1 
-### Kaplan-Meier curve
-```{r}
-sf_win = survfit(Surv(Age, Death) ~ Oscar_win, data = data)
+## 5.1 Single variate Cox regression
 
-plot(sf_win)
+### Kaplan-Meier curve
+
+```{r, warning=FALSE, message=FALSE}
+sf_win = survfit(Surv(Age, Death) ~ Oscar_win, data = data)
+ggsurvplot(sf_win, 
+           data = data,
+           xlim = c(0,110),
+           pval = FALSE, 
+           conf.int = FALSE,
+           surv.median.line = "hv", # Specify median survival
+           ggtheme = theme_bw(), 
+           palette = c("#00008B",'#FF0000'),
+           xlab="Age in years") + 
+  labs(color = "Groups")
 ```
 
 ### Log-rank test
+
 ```{r}
 survdiff(Surv(Age, Death) ~ Oscar_win, data = data)
 ```
 
 ### Cox proportional hazards model
+
 ```{r}
-coxph(Surv(Time1, Time2, Death) ~ Oscar_win, data = data)
+model4 = coxph(Surv(Time1, Time2, Death) ~ Oscar_win, data = data)
+tbl_regression(model4, exp = TRUE) 
 ```
 
-## 5.2
+## 5.2 Multivariate Cox regression
+
 ```{r}
-coxph(Surv(Time1, Time2, Death) ~ Oscar_win + Born_USA + Male, data = data)
+model5 = coxph(Surv(Time1, Time2, Death) ~ Oscar_win + Born_USA + Male, data = data)
+tbl_regression(model5, exp = TRUE) 
 ```
-
-
-
-
-
 
