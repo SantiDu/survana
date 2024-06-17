@@ -8,7 +8,7 @@ df_print: paged
 
 # Introduction
 
-In this report, we aim to investigate the effect of Oscar win on the survival of actors and actresses. In an earlier analysis, Redelmeier and Singh (2001) concluded that Oscar win prolonged the survival. Unfortunately, they did not incorporate the winning of an Oscar as a time-dependent variable. We will first explore the data set, then apply data stratification, Kaplan-Meier estimation, log-rank test, and Cox proportional hazards model to analyze the survival of actors.
+In this report, we aim to investigate the effect of winning an Oscar on the survival of actors and actresses. Building upon the work of Redelmeier and Singh (2001), who concluded that Oscar wins prolonged survival, we aim to incorporate Oscar wins as a time-dependent variable. Our analysis involves data stratification, Kaplan-Meier estimation, log-rank tests, and Cox proportional hazards modeling. Specifically, we explore survival patterns among actors, considering factors such as gender and age.
 
 # Import packages
 
@@ -22,7 +22,7 @@ library(gtsummary)
 
 # 1. Data exploration
 
-The Oscar data originated from the aforementioned analysis.
+The Oscar data originated from the aforementioned analysis. 
 
 ```{r}
 data = read.table("Oscars.txt", header = T, sep = "\t")
@@ -46,7 +46,7 @@ data$Oscar_nom = ifelse(data$Noms > 0, 1, 0)
 summary(data)
 ```
 
-The data has information of 1670 actors spanned across 11 variables. It contains their year of birth, year of death or last known to be alive (i.e. 2001), from the two we get their age. We also get an indicator variable showing if the death was censored. The year of first Oscar win is also in the data set. Other variables are the number of films, born in USA, gender, number of Oscar nomination, number of Oscar wins, and the year of first Oscar nomination.
+The data has information of 1670 actors spanned across 11 variables. It contains their year of birth, year of death or last known to be alive (i.e. 2001), from the two we get their age. We also get an indicator variable showing if the death was censored. The year of first Oscar win is also in the data set. Other variables are the number of films, born in USA, gender, number of Oscar nomination, number of Oscar wins, and the year of first Oscar nomination. Our goal is to understand the survival patterns among these actors and to determine if factors like gender influence survival. We will employ statistical techniques including Kaplan-Meier survival analysis and Cox proportional hazards modeling. Below, we present the initial analysis:
 
 
 ## Frequency table of the number of deaths
@@ -59,11 +59,12 @@ ggplot(death_df, aes(x = Death, y = Frequency, fill = as.factor(Death))) +
   geom_bar(stat = "identity") +
     labs(title = "Frequency of Deaths") +
   geom_text(aes(label = Frequency), vjust = -0.5, color = "red", size = 4) + # Add count values
-  scale_fill_manual(values = c("blue", "grey"), labels = c("Alive", "Dead")) +
+  scale_fill_manual(values = c("lightblue", "grey"), labels = c("Alive", "Dead")) +
   scale_x_discrete(labels = c("0" = "Alive", "1" = "Dead")) +
   theme(legend.position = "none")
 ```
-The numbers of dead and alive actors up to 2001 are close. 
+
+The number of dead and alive actors up to 2001 is nearly balanced, with a difference of only 92.
 
 
 ## Frequency table of the number of nominations
@@ -79,7 +80,8 @@ ggplot(nom_df, aes(x = Nomination, y = Frequency, fill = as.factor(Nomination)))
   theme(legend.position = "none")
 ```
 
-The frequency deceases as the number of nomination increases. Most (902) actors haven't been nominated. 496 actors have one nomination. Two actors have eleven, and another two actors have twelve nominations.
+The frequency decreases as the number of nominations increases. Most actors (902) have not received any Oscar nominations and 496 actors have received one nomination. Only two actors have received eleven nominations, and another two have received twelve nominations, which is the highest number of nominations.
+
 
 ## Frequency table of the number of wins
 
@@ -93,7 +95,9 @@ ggplot(win_df, aes(x = Wining_Oscar, y = Frequency, fill = as.factor(Wining_Osca
   geom_text(aes(label = Frequency), vjust = -0.5, color = "red", size = 4) +
   theme(legend.position = "none")
 ```
-There are 1670 observations but 1431 of them have zero Oscar win. We have huge imbalance in the data set. It is worth noting that there is one four-time Oscar winners.
+
+There are 1670 observations, but 1431 of them have zero Oscar wins, highlighting a significant imbalance in the dataset when comparing different groups based on the number of wins. Notably, there is one actor who has won the Oscar four times.
+
 
 ## Frequency table of gender
 
@@ -109,7 +113,8 @@ ggplot(gender_df, aes(x = Gender, y = Frequency, fill = as.factor(Gender))) +
   scale_x_discrete(labels = c("0" = "Female", "1" = "Male")) +
   theme(legend.position = "none")
 ```
-The difference in the numbers of male and female actors are not big. There are more actors than actresses.
+The difference in the numbers of male and female actors is not significant. There are more male actors (893) than female actors (777). 
+
 
 ## Frequency table of USA born
 
@@ -125,7 +130,9 @@ ggplot(born_df, aes(x = Born_USA, y = Frequency, fill = as.factor(Born_USA))) +
   scale_x_discrete(labels = c("0" = "No", "1" = "Yes")) + 
   theme(legend.position = "none")
 ```
-The number of US-born actors is 2.5 times the non-US-born actors in the data set.
+
+There are 1,193 actors born in the USA and 477 actors born elsewhere. The number of US-born actors is approximately 2.5 times that of non-US-born actors in the data set.
+The dataset is imbalanced in terms of birthplace.
 
 
 ## Frequency table of number of films
@@ -137,8 +144,7 @@ hist(data$Films,
      ylab = "Frequency")
 ```
 
-It is surprising to see that there are actors can have more than 250 films in his/her lifetime.
-
+Indeed, it is quite surprising to see actors with such a high number of films in his/her lifetime. The histogram indicates that while most actors have appeared in fewer than 50 films, there are outliers who have been in over 250 films. This demonstrates the significant variation in the careers of actors in the dataset.
 
 
 # 2. Kaplan-Meier curve for overall survival, mean survival time, and comparing survival of actors and actresses.
@@ -160,19 +166,24 @@ ggsurvplot(sf_overall,
            palette =c("#E7B800", "#2E9FDF"),
            xlab="Age in years") + 
   labs(color = "Groups")
+
+summary(sf_overall)$table["median"]
 ```
-The survival curve looks stable during the first 30 to 50 years, and start to drop after that. The median survival age is about 76.
+
+The Kaplan-Meier survival curve for all actors in the dataset shows a relatively stable survival rate from early adulthood through middle age, with a noticeable decline beginning around age 50. This pattern suggests that actors tend to have consistent survival rates in their earlier years, followed by a gradual decrease in survival rates as they age. The median survival age, indicating the age at which 50% of actors have passed away, is estimated to be 79 years. This analysis provides insight into the overall longevity trends among actors in the dataset.
 
 
-### Calculate mean survival time
+### Calculate Mean Survival Time
 
-To calculate the mean survival time, we first see if the last entry in the data set is censored.
+To determine the mean survival time of actors in the dataset, we first assess if the last entry is censored:
 
 ```{r}
 tail(data[order(data$Age), ])
 ```
 
-The last record in the data set is censored. Therefore, to calculate the mean survival time, we need to choose an upper limit. If we choose the upper limit to be the maximum age, i.e. 104, in the data set, then the mean survival time is $\int_0^{104} \hat S(t) dt = 76.6$.
+The last record in the dataset is censored. Consequently, we calculate the mean survival time by choosing an upper limit. Setting the upper limit at the maximum age observed in the dataset, 104 years, yields a mean survival time of approximately 76.6 years:
+
+ $\int_0^{104} \hat S(t) dt = 76.6$.
 
 ```{r}
 mu = sf_overall$time[1]
@@ -183,18 +194,24 @@ for(i in 1:(length(sf_overall$time)-1)) {
 summary(sf_overall)$table["rmean"]
 ```
 
-If we choose the upper limit to be the largest possible age a person can survive, i.e. 120, then the mean survival time is $\int_0^{120} \hat S(t) dt = 76.8$.
+Alternatively, if we extend the upper limit to 120 years, assuming it as the maximum potential age of human, the mean survival time increases slightly to 76.8 years:
+
+ $\int_0^{120} \hat S(t) dt = 76.8$.
 
 ```{r}
 print(sf_overall, print.rmean=TRUE, rmean=120)
 ```
 
+These calculations provide insight into the average survival duration of actors in the dataset, accounting for both the observed data and potential extended lifespans.
+
+
 ## 2.2 Survival - males and females
-Now we stratify the data set by gender, and plot the Kaplan-Meier curve.
+
+Next, we’ll compare the survival curves with Kaplan-Meier curves between male and female actors. This analysis will help us understand whether gender plays a significant role in survival.
 
 ### Kaplan-Meier curve
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 sf_gender = survfit(formula = Surv(Age, Death) ~ Male, data = data)
 ggsurvplot(sf_gender,
            data = data,
@@ -207,15 +224,22 @@ ggsurvplot(sf_gender,
            xlab="Age in years") + 
   labs(color = "Groups")
 ```
-The female survival curve, which is the yellow one, runs above the male curve, starting from age 67 or so.
+```{r}
+summary(sf_gender)$table
+```
+
+The Kaplan-Meier curves highlight distinct survival trends between males (blue curve) and females (yellow curve), with females consistently showing a higher survival rate across all ages starting from around 62.5 to 93 years. For females, with 777 records, the median survival age is 81 years, with a 95% confidence interval (CI) ranging from 80 to 83 years. The estimated mean survival time is around 78.06 years. In comparison, males, with 893 records, have a median survival age of 77 years, with a 95% CI ranging from 76 to 78 years, and an estimated mean survival time of approximately 75.5 years. The observed higher survival rates among females compared to males align with broader demographic trends, highlighting gender as a significant factor influencing survival outcomes in our dataset.
+
 
 ### Log-rank test
+
+We use the log-rank test to assesses whether there is a statistically significant difference in survival between male and female actors.
 
 ```{r}
 survdiff(Surv(Age, Death) ~ Male, data = data)
 ```
+The log-rank test result shows that the test statistic (Chi-squared) is 12.2 with 1 degree of freedom, and the p-value is very small (5e-04). We reject the null hypothesis, indicating that there is indeed a significant difference in survival between the two gender groups. Therefore, gender plays a crucial role in influencing actors’ survival outcomes.
 
-The log-rank test result indicates a significant difference in survival rates between males and females. The p-value of the test is very small (5e-04), indicating sufficient evidence to reject the null hypothesis of no difference between the two groups.
 
 ### Cox proportional hazards model and hazard ratio
 
@@ -223,7 +247,10 @@ The log-rank test result indicates a significant difference in survival rates be
 model = coxph(Surv(Age, Death) ~ Male, data = data)
 tbl_regression(model, exp = TRUE)
 ```
-The p-value of the hazard ratio is less than 0.001. Male actors are 1.29 times more likely to die at a given age provided that they have survived to that age. 
+
+The Cox model estimates the hazard ratio (HR) associated with gender (Male). The hazard ratio represents the relative risk of death for one group compared to another. For male actors, the hazard ratio is 1.29 (95% CI: 1.12 to 1.48), with a p-value lower 0.001. Thus, male actors have a 29% higher risk of death compared to female actors at a given age. 
+
+In summary, gender significantly influences survival among actors, with males facing a higher mortality risk.
 
 
 # 3. Oscar win and nomination as time-fixed variables
