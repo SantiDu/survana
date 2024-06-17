@@ -242,13 +242,14 @@ tbl_regression(model, exp = TRUE)
 
 The Cox model estimates the hazard ratio (HR) associated with gender (Male). The hazard ratio represents the relative risk of death for one group compared to another. For male actors, the hazard ratio is 1.29 (95% CI: 1.12 to 1.48), with a p-value lower 0.001. Thus, male actors have a 29% higher risk of death compared to female actors at a given age.
 
-In summary, gender significantly influences survival among actors, with males facing a higher mortality risk. 
+In summary, gender can significantly influences survival among actors, with males facing a higher mortality risk. 
 
 # 3. Oscar win and nomination as time-fixed variables
 
 We now compare the actors with at least one Oscar win and the group with no wins, using Oscar win as a time-fixed variable.
 
 ## 3.1 Oscar win
+
 
 ```{r, message=FALSE, warning=FALSE}
 sf_win <- survfit(formula=Surv(Age, Death) ~ Oscar_win, data=data)
@@ -264,7 +265,12 @@ ggsurvplot(sf_win,
   labs(color = "Groups")
 ```
 
-The red survival curve is Oscar win group, which is above the blue non-win group. Looks like actors with Oscar win lives longer than those without Oscar win.
+From around age 40 to 100 years, the Oscar winners (red curve) remains consistently above that of non-winners (blue curve) showing that actors who have won an Oscar consistently exhibit higher survival rates compared to non-winners.
+
+The median survival age for Oscar winners is estimated to be 81 years (95% CI: 78 to 84 years). The estimated mean survival time for this group is approximately 79.66 years. While with non-winning actors  follow a similar trajectory. The median survival age for non-winners is estimated to be 78 years (95% CI: 77 to 80 years).The estimated mean survival time for this group is approximately 76.1 years.
+
+Depend on these results, we can see that the winning an Oscar appears to correlate with slightly better survival outcomes. However, to give a precise conclusion we will look at other aspects and compare the results in following parts.
+
 
 ### Log-rank test
 
@@ -272,7 +278,8 @@ The red survival curve is Oscar win group, which is above the blue non-win group
 survdiff(Surv(Age, Death) ~ Oscar_win, data = data)
 ```
 
-The p-value of the log-rank test is 0.005. We reject the null hypothesis that the survival of the two groups are the same.
+We continue using the Log-rank test to assesses whether there is a statistically significant difference in survival between Oscar winners and non-winners. And the test statistic (Chi-squared) is 7.8 with 1 degree of freedom with the p-value is 0.005, which is below the conventional significance level. Therefore, we reject the null hypothesis that the survival experiences of Oscar winners and non-winners are the same. In other words, we could say that winning an Oscar does impact survival outcomes among actors in our dataset.
+
 
 ### Cox proportional hazards model and hazard ratio
 
@@ -281,7 +288,8 @@ model2 = coxph(Surv(Age, Death) ~ Oscar_win, data = data)
 tbl_regression(model2, exp = TRUE) 
 ```
 
-The p-value of the hazard ratio is 0.006. The 95% confidence interval is (0.61, 0.92), does not containing 1. At any age the actor/ actress with Oscar awards is as 0.75 times likely to die as those without Oscar awards, provided that they survived to that age.
+The hazard ratio (HR) associated with Oscar_win is 0.75 means that at any given age, actors or actresses with Oscar awards are 0.75 times as likely to experience an event (death) compared to those without Oscar awards, assuming they have survived up to that age. Clearly, winning an Oscar is associated with a slightly lower risk of mortality. The 95% confidence interval for the hazard ratio is (0.61, 0.92) does not include 1, we consider the effect statistically significant. Moreover, the p-value associated with Oscar_win is 0.006, strongly indicates to against the null hypothesis. Therefore, winning an Oscar significantly influences survival outcomes among actors.
+
 
 ## 3.2 Oscar nomination
 
@@ -300,15 +308,15 @@ ggsurvplot(sf_nom,
   labs(color = "Groups")
 ```
 
-It looks like the survival curve of Oscar nomination group is above the non-nomination group from around age 55 to 80, but is the difference significant? We test it with the log-rank test.
+It looks like the survival curve of Oscar nomination group is above the non-nomination group from around age 55 to 90, but is the difference significant? We will test it with the log-rank test.
 
 ### Log-rank test
 
 ```{r}
 survdiff(Surv(Age, Death) ~ Oscar_nom, data = data)
 ```
+The test statistic (Chi-squared) is 3.7 with 1 degree of freedom with the p-value is 0.053. Hence, we can not reject the null hypothesis that the survival of the two groups are the same.
 
-The p-value of the log-rank test is 0.053. We can not reject the null hypothesis that the survival of the two groups are the same.
 
 ### Cox proportional hazards model
 
@@ -319,11 +327,12 @@ tbl_regression(model3, exp = TRUE)
 
 At any given age, the actor/ actress with nomination is as 0.87 time likely to die as without nomination, provided that they survived to that age. However, the p-value is larger than 0.05, and the 95% confidence interval is (0.76, 1.01), containing 1. So the ratio is not statistically significant.
 
+
 # 4. The reason that above analysis is wrong.
 
-By using Oscar win as a time-fixed variable, we treat the actors with Oscar win as if they were born with an Oscar, but they are not. They have to live long enough to get an Oscar. Therefore, analyzing the data this way, we will over-estimate the survival of the actors who won the award. This is known as "immortal time bias". This bias will increase the difference of survival between the two groups. We also did not adjust for the covariates, such as born in US, or gender.
+By using Oscar win as a time-fixed variable, we treat the actors with Oscar win as if they were born with an Oscar, but they are not. They have to live long enough to get an Oscar. Therefore, analyzing the data this way, we overestimated the survival of the actors who won the award. This is known as "immortal time bias". These actors must survive long enough to receive the award, which introduces a bias. It falsely inflates their survival time before the Oscar win and increase the difference of survival between the two groups. As a result, the survival curves for Oscar winners may appear better than they actually are. Furthermore, we also did not adjust for the covariates, such as born in US, or gender.
 
-To conduct the correct analysis, we should use Oscar win as time-dependent variable, and also try to adjust for possible confounders.
+To conduct the correct analysis and address this bias, we should use Oscar win as time-dependent variable, and also try to adjust for possible confounders (such as birthplace, gender, etc.).
 
 # 5. Oscar win as time-dependent variable
 
@@ -371,15 +380,15 @@ ggsurvplot(sf_win,
   labs(color = "Groups")
 ```
 
-It looks like survival curve of the Oscar win group is above the curve of the non-win group in some time intervals, but overall, the difference is not big. We use the log-rank test, and Cox proportional hazard model to confirm this.
+It looks like survival curve for the Oscar win group appears higher than that of the non-win group at some certain time intervals, but overall, the difference is not substantial. We will perform both the log-rank test and the Cox proportional hazard model to confirm this.
+
 
 ### Log-rank test
 
 ```{r}
 survdiff(Surv(Age, Death) ~ Oscar_win, data = data)
 ```
-
-The p-value of the log-rank test is way above 0.05. We can not reject the null hypothesis that the survival of actors with at least one Oscar award and without award are the same.
+The log-rank test compares the survival distributions of actors with at least one Oscar award (Oscar win group) and actors without any award (non-win group). The test statistic (Chi-squared) is 0.9 with 1 degree of freedom and the p-value is 0.3, which is greater than 0.05. Thus, we can not reject the null hypothesis that the survival of actors with at least one Oscar award and without award are the same.
 
 ### Cox proportional hazards model
 
@@ -388,7 +397,9 @@ model4 = coxph(Surv(Time1, Time2, Death) ~ Oscar_win, data = data)
 tbl_regression(model4, exp = TRUE) 
 ```
 
-Again, the hazard ratio is 0.84, but the p-value is 0.11, way above 0.05. The 95% confidence interval is (0.69, 1.04), containing 1. So, we can not reject the null hypothesis that the hazard of two groups are the same. 
+Again, the hazard ratio (HR) for Oscar wins is 0.84, but The p-value associated with Oscar wins is 0.11, still above the 0.05 threshold. And the 95% confidence interval (CI) for the HR is (0.69, 1.04), which includes 1. Combined all of these, we can not reject the null hypothesis that the hazard of two groups are the same. 
+
+In summary, both the log-rank test and the Cox model suggest that Oscar wins do not significantly impact survival.
 
 ## 5.2 Multivariate Cox regression
 
@@ -396,10 +407,13 @@ Again, the hazard ratio is 0.84, but the p-value is 0.11, way above 0.05. The 95
 model5 = coxph(Surv(Time1, Time2, Death) ~ Oscar_win + Born_USA + Male, data = data)
 tbl_regression(model5, exp = TRUE) 
 ```
-Again, the p-value for the hazard rate of Oscar win is 0.13, far above 0.05. The 95% confidence interval is (0.69, 1.05), containing 1. So the difference between the win and non-win groups are not significant. The same goes for the actors born in USA and outside the USA. Conversely, the p-value of the gender being male is far less than 0.05, and the confidence interval (1.12, 1.49) does not contain 1. So, the differnce of survival between the two gender is significant. And male actors have higher hazard rate than the female actors. 
+Again, the p-value for the Hazard Ratio (HR) of Oscar win is 0.13, much higher than 0.05. The 95% confidence interval is (0.69, 1.05), containing 1. So the difference between the win and non-win groups are not significant. The same goes for the actors born in USA and outside the USA. Conversely, the p-value of the gender being male is far less than 0.05, and the confidence interval (1.12, 1.49) does not contain 1. So, the difference of survival between the two gender is significant. And male actors have higher hazard rate than the female actors. 
 
 # Summary
-In this report we wanted to see the effect of Oscar win on the survival of actors. We began by exploring the data set, drawing frequency tables of various variables. We applied Kaplan-Meier to get the overall survival, without stratification, and calculated mean survival time. We used log-rank test, and Cox proportional hazard model on the data set to see if difference in survival across gender is significant.
+
+
+In this report we aimed to understand the effect of Oscar wins on actor survival. We began by exploring the data set, drawing frequency tables of various variables. We applied Kaplan-Meier to get the overall survival, without stratification, and calculated mean survival time. We used Log-rank test, and Cox Proportional Hazard model on the data set to see if difference in survival across gender is significant.
 
 We applied the Kaplan-Meier, log-rank test, and Cox proportional hazard model on the data set, using Oscar win as a time-fixed variable. This approach was not apt in this case as the analysis suffered from immortal time bias and the effect of the other covariates. By using Oscar win as a time-dependent variable and including the other covariates in a Cox model, we don't see significant difference in survival between Oscar win and non-win groups. Gender plays a more important row in the difference of survival.  
+
 
